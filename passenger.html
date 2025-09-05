@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Passenger App - Bus Tracking</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map { height: 100vh; }
+  </style>
+</head>
+<body>
+  <h2>Passenger Bus Tracking</h2>
+  <div id="map"></div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    // Initialize map
+    var map = L.map('map').setView([18.5204, 73.8567], 13);
+
+    // Add map tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19
+    }).addTo(map);
+
+    // Marker placeholder
+    var busMarker = null;
+
+    function updateBusLocation() {
+      fetch("http://127.0.0.1:5000/get_location/101")
+        .then(response => response.json())
+        .then(data => {
+          if (data.location) {
+            var lat = data.location.lat;
+            var lon = data.location.lon;
+
+            console.log("Bus Location:", lat, lon); // Debugging log
+
+            if (!busMarker) {
+              // First time create marker
+              busMarker = L.marker([lat, lon]).addTo(map)
+                .bindPopup("Bus 101 is here")
+                .openPopup();
+            } else {
+              // Update marker position
+              busMarker.setLatLng([lat, lon]);
+            }
+
+            // Center map on bus
+            map.panTo([lat, lon]);
+          } else {
+            console.log("Bus not found yet.");
+          }
+        })
+        .catch(err => console.error("Error fetching bus location:", err));
+    }
+
+    // Update every 3 seconds
+    setInterval(updateBusLocation, 3000);
+
+    // Run immediately on load
+    updateBusLocation();
+  </script>
+</body>
+</html>
