@@ -1,31 +1,40 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import time
 
 app = Flask(__name__)
 CORS(app)
 
-# Store bus data temporarily
-bus_data = {}
+buses = {}
 
-@app.route('/update_location', methods=['POST'])
+@app.route("/update_location", methods=["POST"])
 def update_location():
     data = request.json
-    bus_id = data.get("bus_id")
-    lat = data.get("lat")
-    lon = data.get("lon")
+    driver_id = data.get("driverId")
+    if not driver_id:
+        return jsonify({"error": "driverId required"}), 400
 
-    if bus_id and lat and lon:
-        bus_data[bus_id] = {"lat": lat, "lon": lon}
-        return jsonify({"status": "success", "message": f"Bus {bus_id} updated."})
-    else:
-        return jsonify({"status": "error", "message": "Missing data"}), 400
+    buses[driver_id] = {
+        "driver_id": driver_id,
+        "bus_no": data.get("busNo"),
+        "name": data.get("name"),
+        "from": data.get("from"),
+        "to": data.get("to"),
+        "lat": data.get("lat"),
+        "lng": data.get("lng"),
+        "full": data.get("full"),
+        "last_update": time.time()
+    }
+    return jsonify({"status": "ok"})
 
-@app.route('/get_location/<bus_id>', methods=['GET'])
-def get_location(bus_id):
-    if bus_id in bus_data:
-        return jsonify({"bus_id": bus_id, "location": bus_data[bus_id]})
-    else:
-        return jsonify({"status": "error", "message": "Bus not found"}), 404
+@app.route("/get_buses", methods=["GET"])
+def get_buses():
+    now = time.time()
+    active_buses = [
+        bus for bus in buses.values()
+        if now - bus["last_update"] < 30
+    ]
+    return jsonify(active_buses)
 
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
